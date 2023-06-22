@@ -5,8 +5,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import cv2 
+from utils import *
 sim.simxFinish(-1)
 clientID = sim.simxStart('127.0.0.1', 19999, True, True, 5000, 5)
+
+
+
+# kalman = cv2.KalmanFilter(4, 2)
+# kalman.measurementMatrix = np.array([[1, 0, 0, 0],
+#                                      [0, 1, 0, 0]], np.float32)
+
+# kalman.transitionMatrix = np.array([[1, 0, 1, 0],
+#                                     [0, 1, 0, 1],
+#                                     [0, 0, 1, 0],
+#                                     [0, 0, 0, 1]], np.float32)
+
+# kalman.processNoiseCov = np.array([[1, 0, 0, 0],
+#                                    [0, 1, 0, 0],
+#                                    [0, 0, 1, 0],
+#                                    [0, 0, 0, 1]], np.float32) * 0.03
+
+# measurement = np.array((2, 1), np.float32)
+# prediction = np.zeros((2, 1), np.float32)
 
 
 # FUNCTIONS TO INTERFACE WITH THE ROBOT
@@ -52,7 +72,11 @@ def get_image_small_cam():
     if return_code == 0:
         image = sim.simxUnpackFloats(return_value)
         res = int(np.sqrt(len(image) / 3))
-        return image_correction(image, res)
+        raw = image_correction(image, res)
+
+        output = raw.astype(np.uint8)
+        output = cv2.cvtColor(output, cv2.COLOR_BGR2RGB)
+        return output
     else:
         return return_code
 
@@ -99,34 +123,21 @@ def show_image(image):
 # END OF FUNCTIONS
 
 def contains_yellow(image, yellow_threshold=10):
-    """
-    Classifies whether a given image contains yellow.
-    """
+    return contains_color(image, [0, 150, 150], [100, 255, 255], yellow_threshold)
 
-    lower_yellow = np.array([0, 150, 150], dtype=np.uint8)
-    upper_yellow = np.array([100, 255, 255], dtype=np.uint8)
+def contains_brown(image, brown_threshold=10):
+    return contains_color(image, [0, 50, 100], [70, 130, 180], brown_threshold)
 
-    # Create a mask for yellow color
-    yellow_mask = cv2.inRange(image, lower_yellow, upper_yellow)
+def contains_red(image, red_threshold=10):
+    return contains_color(image, [0, 30, 100], [70, 50, 140], red_threshold)
 
-    # show the mas
-    # Count the number of yellow pixels
-    yellow_pixel_count = np.count_nonzero(yellow_mask)
-
-    # Determine if the image contains yellow based on the pixel count threshold
-    contains_yellow = yellow_pixel_count > yellow_threshold
-
-    return contains_yellow
-
-def brown(cam):
-    return [105, 52, 3] in cam()
+def contains_blue(image, blue_threshold=10):
+    return contains_color(image, [134, 104, 0], [154, 154, 12], blue_threshold)
 
 def go_to_charge():
-    speed = 4
+    speed = 30
 
     image = get_image_top_cam()
-    image = image.astype(np.uint8)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     middle = int(len(image)/2)
 
@@ -136,18 +147,83 @@ def go_to_charge():
         image = get_image_top_cam()
 
     sleep(2)
-    set_speed(30, 30)
-    while not contains_yellow(image[:,middle-2:middle+2], 4*40):
-        # go straight until yellow is seen in the bottom of the image
+
+    error = detect_color_coordinates(image, [0, 150, 150], [100, 255, 255])[0] - middle
+
+
+    # to do: while it is not charging
+    while(not contains_yellow(image[:,middle-2:middle+2], 4*40)):
         image = get_image_top_cam()
-    sleep(3)
-    set_speed(0, 0)
-    
+        error = (detect_color_coordinates(image, [0, 150, 150], [100, 255, 255])[0] - middle) * speed/10
+        if abs(error) < 2:
+            #go straight
+            set_speed(speed, speed)
+            continue
+        set_speed(speed + error, speed -error)
+
+
+
+def is_carrying_object():
+    image = get_image_small_cam()
+
+    return contains_brown(image, 60**2) or contains_red(image, 60**2)       
+        
+def pointing_blue_base():
+    image = get_image_top_cam()
+    # while True:
+    #     print(contains_blue(image[0:10, :]))
+    #     cv2.imshow('image', image[0:10, :])
+    #     cv2.waitKey(1)
+    #     image = get_image_top_cam()
+    middle = int(len(image)/2)
+    return contains_blue(image[0:10, middle-5:middle+5])
+        
+def go_to_dropoff():
+
+    speed = 30
+
+    image = get_image_top_cam()
+
+    middle = int(len(image)/2)
+
+    while not pointing_blue_base():
+        set_speed(speed, speed*2)
+        image = get_image_top_cam()
+
+    error = detect_color_coordinates(image, [134, 104, 0], [154, 154, 12])[0] - middle
+
+    while(not contains_blue(get_image_small_cam(), 60**2)):
+        image = get_image_top_cam()
+        error = (detect_color_coordinates(image, [134, 104, 0], [154, 154, 12])[0] - middle) * speed/10
+        if abs(error) < 10:
+            #go straight
+            set_speed(speed, speed)
+            continue
+        set_speed(speed + error, speed -error)
+    set_speed(-speed, -speed)
+
+
+
 
 # MAIN CONTROL LOOP
 if clientID != -1:
     print('Connected')
+    #go_to_charge()
     go_to_charge()
+
+
+    # if battery is low:
+    # go to charge
+    # else:
+    # if carrying object:
+    # go to dropoff
+    # else:
+    # if object in sight:
+    # go to object
+    # else:
+    # wander
+
+
     while True:
         # your code goes here
         pass
