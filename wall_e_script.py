@@ -1,6 +1,7 @@
 import colorsys
 import random
 from time import sleep
+import time
 import sim
 import numpy as np
 import matplotlib.pyplot as plt
@@ -136,13 +137,12 @@ def go_to_charge():
         set_speed(-speed, speed)
         image = get_image_top_cam()
 
-    sleep(2)
-
     error = detect_color_coordinates(image, CHARGER)[0] - middle
 
 
     # to do: while it is not charging
-    while(not contains_object(image[:,middle-2:middle+2], CHARGER, 4*40)):
+    battery = get_battery()
+    while(get_battery()<=battery):
         image = get_image_top_cam()
         error = (detect_color_coordinates(image, CHARGER)[0] - middle) * speed/10
         if abs(error) < 2:
@@ -150,6 +150,10 @@ def go_to_charge():
             set_speed(speed, speed)
             continue
         set_speed(speed + error, speed -error)
+
+    set_speed(0,0)
+    while get_battery() < 0.95:
+        pass
 
 def is_carrying_object():
     image = get_image_small_cam()
@@ -166,16 +170,20 @@ def find_compressed_object():
     print("finding compressed object")
     image = get_image_small_cam()
     middle = int(len(image)/2)
-
+    time_s = time.time()
     set_speed(30, 0)
     while not contains_object(image[middle+3:,middle-3:middle+3], COMPRESSED, 1):
         # cv2.imshow("image", image[middle:,middle-3:middle+3])
         # cv2.waitKey(1)
         image = get_image_small_cam()
+        if time.time() - time_s > 10:
+            print("could not find compressed object")
+            return 1
 
     print("found compressed object, going to it")
     set_speed(30, 30)
     sleep(2)
+    return 0
         
         
 
@@ -187,7 +195,7 @@ def go_to_dropoff(object: Entity):
     speed = 30
     image = get_image_top_cam()
     middle = int(len(image)/2)
-
+    status = 0
     while not contains_object(image, dropoff):
         set_speed(speed, speed*2)
         image = get_image_top_cam()
@@ -196,8 +204,11 @@ def go_to_dropoff(object: Entity):
             compress()
             if not is_carrying_object():
                 print("not carrying object, finding compressed object")
-                find_compressed_object()
+                status = find_compressed_object()
                 break
+
+    if status == 1:
+        return
 
     if object in [TRASH, TRASH_2]:
         while not contains_object(image, dropoff):
@@ -323,7 +334,8 @@ if clientID != -1:
         elif is_carrying_object():
             current_behavior = "carrying_object"
             print(current_behavior)
-            go_to_dropoff(object)
+            if object is not None:
+                go_to_dropoff(object)
         else:
             
             object = detect_object(get_image_top_cam())[0]
