@@ -259,21 +259,21 @@ def go_to_object(object: Entity):
     if object == COMPRESSED:
         image = image[middle:,middle-10:middle+10] # only look at the bottom half of the image 
 
-
+    # Spin until the target object is in visual field
     while not contains_object(image, object, 1):
-        # turn in place until yellow is seen in the middle of the image
         set_speed(-speed, speed)
         image = get_image_top_cam()
         if object == COMPRESSED:
-            image = image[middle:,middle-10:middle+10] # only look at the bottom half of the image 
+            image = image[middle:,middle-10:middle+10]
 
-
+    # Stop spinning
     set_speed(0,0)
 
     image = get_image_top_cam()
     if object == COMPRESSED:
         image = image[middle:,middle-10:middle+10]
 
+    # Get exact coordinates of target object on the image 
     target = detect_object(image, [object], 1)
 
     if target[0] is None:
@@ -284,12 +284,11 @@ def go_to_object(object: Entity):
 
     error = (target[1] - middle) * speed/50
 
-    # not contains_object(image[:,middle-2:middle+2], object, 4*40)
+    
+    # Move towards the object until it is in carry position. Adjust robot's trajectory to
+    # bring the object in the vertical middle of the image
     while not is_carrying_object():
         image = get_image_top_cam()
-       
-        # cv2.imshow("image", image)
-        # cv2.waitKey(1)
 
         if object == COMPRESSED:
             image = image[middle:,middle-10:middle+10] # only look at the bottom half of the image 
