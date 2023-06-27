@@ -83,8 +83,8 @@ def contains_object(image, object, threshold=10):
 
     # Create a mask for target color
     mask = cv2.inRange(image, lower_yellow, upper_yellow)
-    # cv2.imshow('mask', mask)
-    # cv2.waitKey(1)
+    cv2.imwrite('uysd.jpg', mask)
+    cv2.waitKey(1)
     # show the mas
     # Count the number of pixels
     pixel_count = np.count_nonzero(mask)
