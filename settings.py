@@ -9,10 +9,10 @@ class Entity:
         self.name = name
 
 
-TRASH = Entity([0, 50, 100], [70, 94, 143], "TRASH")
+TRASH = Entity([0, 50, 80], [70, 94, 143], "TRASH")
 TRASH_2 = Entity([0, 30, 100], [70, 50, 140], "TRASH_2")
 PLANT_COLLECTOR = Entity([134, 104, 0], [154, 154, 12], "PLANT_COLLECTOR")
-TRASH_COLLECTOR = Entity([0, 0, 100], [30, 30, 255], "TRASH_COLLECTOR")
+TRASH_COLLECTOR = Entity([0, 0, 70], [0, 0, 255], "TRASH_COLLECTOR")
 CHARGER = Entity([0, 150, 150], [100, 255, 255], "CHARGER")
-PLANT = Entity([0, 70, 0], [50, 255, 50], "PLANT")
+PLANT = Entity([0, 70, 0], [50, 255, 70], "PLANT")
 COMPRESSED = Entity([0, 0, 0], [30,30,30], "COMPRESSED")

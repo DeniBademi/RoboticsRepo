@@ -98,11 +98,11 @@ def contains_object(image, object, threshold=10):
 def show_mask(image, object, threshold=10):
 
     
-    lower_yellow = np.array(object.lower_color, dtype=np.uint8)
-    upper_yellow = np.array(object.upper_color, dtype=np.uint8)
+    lower = np.array(object.lower_color, dtype=np.uint8)
+    upper = np.array(object.upper_color, dtype=np.uint8)
 
     # Create a mask for target color
-    mask = cv2.inRange(image, lower_yellow, upper_yellow)
+    mask = cv2.inRange(image, lower, upper)
     cv2.imshow('mask', mask)
     cv2.waitKey(1)
 
