@@ -32,6 +32,7 @@ def detect_color_coordinates(image, object: Entity):
             total_y += cY
             count += 1
 
+
     # Calculate the average coordinates
     if count > 0:
         avg_x = total_x / count
@@ -47,6 +48,12 @@ def detect_object(image, detectable_objects = [TRASH, TRASH_2, PLANT], threshold
     optimal_objects = []
 
     for object in detectable_objects:
+
+        if object == COMPRESSED:
+            mid = int(image.shape[1] / 2)
+            #take bottom half of image
+            image = image[mid:, :]
+
         lower_bound = np.array(object.lower_color, dtype=np.uint8)
         upper_bound = np.array(object.upper_color, dtype=np.uint8)
 
@@ -64,10 +71,10 @@ def detect_object(image, detectable_objects = [TRASH, TRASH_2, PLANT], threshold
         # Calculate the coordinates of the bounding rectangle for the largest contour
         x, y, w, h = cv2.boundingRect(largest_contour)
         centerX = x + w / 2
-        optimal_objects.append((object, centerX, w*h))
+        optimal_objects.append((object, centerX, y))
 
 
-    optimal_objects.sort(key=lambda x: x[2], reverse=True)
+    optimal_objects.sort(key=lambda x: x[2], reverse=False)
 
     if len(optimal_objects) > 0 and optimal_objects[0][2] > threshold:
         return optimal_objects[0]

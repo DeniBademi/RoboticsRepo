@@ -7,18 +7,21 @@ import time
 e_prev = 0
 t_prev = time.time()
 
+
+
 def follow_line(color_sensor, robot):
 
     reflection = color_sensor.reflection()
 
-    BLACK = 9
-    WHITE = 85
+    BLACK = 2
+    WHITE = 35
     threshold = (BLACK + WHITE) / 2  # Midpoint between black and white
     global e_prev
 
-    Kp = 1.6
-    Kd = 100
+    Kp = 7.6
+    Kd = 300
 
+    print(reflection)
     t = time.time()
     # PID calculations
     e = reflection - threshold

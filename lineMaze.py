@@ -49,10 +49,10 @@ def follow_line(color_sensor, left_motor, right_motor):
 
     threshold = 40  # Midpoint between black and white
 
-    Kp = 0.05
-    Ki = 0.01
-    Kd = 0.001
-    MAX_INTEGRAL = 80
+    Kp = 0.04
+    Ki = 0.05
+    Kd = 0.005
+    MAX_INTEGRAL = 50
     CONST_SPEED = 2
 
     global e_prev
@@ -67,12 +67,12 @@ def follow_line(color_sensor, left_motor, right_motor):
 
     P = e
     D = (e - e_prev) / dt if dt > 0 else 0
-
     I += e * dt
+    
     I = max(min(I, MAX_INTEGRAL), -MAX_INTEGRAL)
     
 
-    if abs(e) < 30:
+    if abs(e) < 40:
         P = 0
     
     print(e)

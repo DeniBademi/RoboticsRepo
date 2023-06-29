@@ -139,12 +139,18 @@ def go_to_charge():
 
     error = detect_color_coordinates(image, CHARGER)[0] - middle
 
+    if error is None:
+        return
 
     # to do: while it is not charging
     battery = get_battery()
     while(get_battery()<=battery):
         image = get_image_top_cam()
         error = (detect_color_coordinates(image, CHARGER)[0] - middle) * speed/10
+
+        if error is None:
+            return
+        
         if abs(error) < 2:
             #go straight
             set_speed(speed, speed)
@@ -171,8 +177,13 @@ def find_compressed_object():
     print("finding compressed object")
     image = get_image_small_cam()
     middle = int(len(image)/2)
+
+    set_speed(30, 30)
+    sleep(0.4)
+
     time_s = time.time()
-    set_speed(30, -30)
+    
+    set_speed(-30, 30)
     while not contains_object(image[middle+10:,middle-3:middle+3], COMPRESSED, 1):
         # cv2.imshow("image", image[middle:,middle-3:middle+3])
         # cv2.waitKey(1)
@@ -211,6 +222,12 @@ def go_to_dropoff(object: Entity):
     while not contains_object(image, dropoff):
         set_speed(speed, speed*2)
         image = get_image_top_cam()
+        show_mask(image, WALL, 1)
+
+        if contains_object(image, WALL, 55**2):
+            set_speed(-speed*0.5, -speed*2)
+            sleep(2)
+            return
 
     error = detect_color_coordinates(image, dropoff)[0] - middle
 
@@ -227,21 +244,25 @@ def go_to_dropoff(object: Entity):
             continue
         error = (target[0] - middle) * speed/50
 
-
         # Obstacle avoidance
         middle = int(len(image)/2)
-        if detect_object(image[:middle+10,10:-10], [TRASH, TRASH_2, PLANT], 180)[0] is not None:
+        if detect_object(image[:middle+10,10:-10], [TRASH, TRASH_2, PLANT], 160)[0] is not None:
             error +=10
             set_speed(speed + error, speed -error)
             sleep(2)
             continue
 
+        if contains_object(image, WALL, 45**2):
+            set_speed(-speed*0.5, -speed*2)
+            sleep(2)
+            return
+
 
         print(error)
-        if abs(error) < 5:
-            #go straight
-            set_speed(speed, speed)
-            continue
+        # if abs(error) < 5:
+        #     #go straight
+        #     set_speed(speed, speed)
+        #     continue
         set_speed(speed + error, speed -error)
 
         show_mask(get_image_small_cam(), object, 1)
@@ -252,7 +273,7 @@ def go_to_dropoff(object: Entity):
 
 
 def go_to_object(object: Entity):
-    speed = 30
+    speed = 300
     image = get_image_top_cam()
     middle = int(len(image)/2)
 
@@ -328,9 +349,27 @@ def wander():
     error = random.randint(-10, 10)
     duration = random.randint(1, 5)
 
+    image_top = get_image_top_cam()
+    image_small = get_image_small_cam()
+
+
+
     set_speed(speed + error, speed -error)
     sleep(duration)
 
+def stay_alive():
+
+    image_top = get_image_top_cam()
+    image_small = get_image_small_cam()
+    speed = 30
+
+    if contains_object(image_small, WALL, 62**2) \
+        or contains_object(image_top, PLANT_COLLECTOR, 40**2) \
+        or contains_object(image_top, TRASH_COLLECTOR, 40**2):
+        set_speed(-speed, -speed)
+        sleep(3)
+        set_speed(speed, -speed)
+        sleep(2)
     
 current_behavior = None
 
@@ -341,24 +380,30 @@ if clientID != -1:
     set_speed(0,0)
     object = None
     while True:
+
+        
         # set_speed(0,0)
-        # print(get_image_top_cam()[0][0])
+        #print(get_image_top_cam()[40][40])
         # show_mask(get_image_top_cam(), TRASH_COLLECTOR, 1)
 
-        #print(is_carrying_object())
-        # if is_carrying_object():
+        # #print(is_carrying_object())
+        # # if is_carrying_object():
 
-        print(current_behavior)
+
+        # print(current_behavior)
+
+        
+        stay_alive()
+
         if get_battery() < 0.20:
             current_behavior = "go_to_charge"
             print(current_behavior)
             go_to_charge()
         
-        elif is_carrying_object():
-            current_behavior = "carrying_object"
+        elif is_carrying_object() and object is not None:
+            current_behavior = "carrying_object " + object.name
             print(current_behavior)
-            if object is not None:
-                go_to_dropoff(object)
+            go_to_dropoff(object)
         else:
             
             object = detect_object(get_image_top_cam())[0]
